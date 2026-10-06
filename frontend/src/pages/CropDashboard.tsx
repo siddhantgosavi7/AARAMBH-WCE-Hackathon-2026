@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   BarChart3, CloudRain, LayoutDashboard, Leaf,
-  LogOut, MapPin, Sprout, TrendingUp, Wheat,
+  LogOut, Sprout, TrendingUp, Wheat,
   Plus, ChevronRight, Loader2,
 } from 'lucide-react';
 import { api } from '../api/client';
@@ -26,6 +26,7 @@ export const CropDashboard: React.FC = () => {
   const [analysis, setAnalysis] = useState<CropAnalysis | null>(null);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState<string | null>(null);
+  const [tab, setTab]           = useState<AnalysisTab>('overview');
 
   useEffect(() => {
     if (!user) return;
@@ -63,42 +64,26 @@ export const CropDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Field info block */}
-        {analysis && (
-          <div className="mx-3 mt-4 px-3 py-3 rounded-xl bg-emerald-950/40 border border-emerald-800/30">
-            <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest mb-1">Current field</p>
-            <p className="font-bold text-white text-sm">{analysis.farm.name}</p>
-            <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-              <MapPin className="w-3 h-3 shrink-0" />
-              {analysis.farm.location}
-            </p>
-            <div className="flex gap-2 mt-2 flex-wrap">
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-600/20">
-                {analysis.farm.crop}
-              </span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-700/50 text-slate-300">
-                {analysis.farm.area_acres} acres
-              </span>
-            </div>
-          </div>
-        )}
 
-        {/* Nav */}
-        <nav className="flex-1 p-3 space-y-1 mt-2" aria-label="Analysis sections">
-          {analysis
-            ? analysisNav.map(({ id, label, hint, icon: Icon }) => (
-                <SidebarNavButton
-                  key={id}
-                  id={`nav-${id}`}
-                  label={label}
-                  hint={hint}
-                  Icon={Icon}
-                  active={false /* controlled inside AnalysisView */}
-                  onClick={() => {}}
-                />
-              ))
-            : null}
-        </nav>
+
+        {/* Nav — only shown when an analysis result is loaded */}
+        {analysis && (
+          <nav className="flex-1 p-3 space-y-1 mt-2" aria-label="Analysis sections">
+            {analysisNav.map(({ id, label, hint, icon: Icon }) => (
+              <SidebarNavButton
+                key={id}
+                id={`nav-${id}`}
+                label={label}
+                hint={hint}
+                Icon={Icon}
+                active={tab === id}
+                onClick={() => setTab(id)}
+              />
+            ))}
+          </nav>
+        )}
+        {/* Spacer when no analysis yet */}
+        {!analysis && <div className="flex-1" />}
 
         {/* New analysis button */}
         {analysis && (
@@ -165,8 +150,8 @@ export const CropDashboard: React.FC = () => {
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto p-6 xl:p-8">
           {analysis
-            ? <AnalysisView data={analysis} onNew={() => setAnalysis(null)} />
-            : <FarmForm token={user.token} onDone={(a) => { setAnalysis(a); setError(null); }} />
+            ? <AnalysisView data={analysis} tab={tab} />
+            : <FarmForm token={user.token} onDone={(a) => { setAnalysis(a); setTab('overview'); setError(null); }} />
           }
         </div>
       </div>
@@ -285,48 +270,21 @@ const FarmForm: React.FC<{ token: string; onDone: (v: CropAnalysis) => void }> =
   );
 };
 
-// ── Analysis view (two-column: sidebar nav + content) ─────────────────────
-const AnalysisView: React.FC<{ data: CropAnalysis; onNew: () => void }> = ({ data, onNew }) => {
-  const [tab, setTab] = useState<AnalysisTab>('overview');
-
-  return (
-    <div className="flex gap-6 xl:gap-8 h-full">
-      {/* Sticky sub-nav (inside scrollable area) */}
-      <div className="w-52 xl:w-60 shrink-0">
-        <div className="sticky top-0">
-          <div className="rounded-2xl bg-[#091b18] border border-emerald-900/40 p-2 space-y-1">
-            {analysisNav.map(({ id, label, hint, icon: Icon }) => (
-              <SidebarNavButton
-                key={id}
-                id={`analysis-nav-${id}`}
-                label={label}
-                hint={hint}
-                Icon={Icon}
-                active={tab === id}
-                onClick={() => setTab(id)}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 min-w-0 space-y-5">
-        {/* Section heading */}
-        <div>
-          <p className="text-emerald-400 text-[11px] font-bold uppercase tracking-[0.18em]">
-            {analysisNav.find((n) => n.id === tab)?.hint}
-          </p>
-          <h2 className="text-2xl xl:text-3xl font-extrabold text-white mt-1">
-            {TAB_TITLES[tab]}
-          </h2>
-        </div>
-
-        <TabContent tab={tab} data={data} />
-      </div>
+// ── Analysis view — content only, nav lives in the outer sidebar ──────────
+const AnalysisView: React.FC<{ data: CropAnalysis; tab: AnalysisTab }> = ({ data, tab }) => (
+  <div className="space-y-5">
+    {/* Section heading */}
+    <div>
+      <p className="text-emerald-400 text-[11px] font-bold uppercase tracking-[0.18em]">
+        {analysisNav.find((n) => n.id === tab)?.hint}
+      </p>
+      <h2 className="text-2xl xl:text-3xl font-extrabold text-white mt-1">
+        {TAB_TITLES[tab]}
+      </h2>
     </div>
-  );
-};
+    <TabContent tab={tab} data={data} />
+  </div>
+);
 
 const TAB_TITLES: Record<AnalysisTab, string> = {
   overview: 'What you need to know today',
