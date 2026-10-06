@@ -8,7 +8,7 @@ Build a farmer-facing analytics application that combines field-level crop histo
 
 The default web experience is now a runnable **Crop Yield & Market Analytics** dashboard. It presents a seeded soybean field with NDVI observations, local forecast, yield range, confidence score, mandi comparison, and an explainable selling recommendation. The API endpoint is `GET /api/crop-analytics/dashboard`.
 
-The original repository still contains legacy AquaFeed models, routes, simulator, seed data, and tests. They are no longer used by the default frontend. The crop dashboard uses deterministic demo data and clearly labels it as such; live data ingestion, field persistence, and validated forecasting remain the next implementation phase.
+The crop dashboard uses deterministic demo data and clearly labels it as such; live data ingestion, field persistence, and validated forecasting remain the next implementation phase.
 
 ## Users and decisions
 
@@ -38,17 +38,15 @@ Recommendations are decision support. Every estimate should show its data date, 
 - The demo works with deterministic seeded data and does not depend on live API credentials or network availability.
 - No screen or README claims that sample data is live or that a baseline estimate is a validated prediction.
 
-## Suggested architecture and mapping from the current repository
+## Target architecture
 
-| Current area | Crop-platform target |
+| Area | Responsibility |
 | --- | --- |
-| `backend/app/models/pond.py` and related pond/feed models | Farm, Field, CropSeason, YieldObservation, SatelliteObservation, WeatherObservation, MarketPrice, Recommendation |
-| `backend/app/api/ponds.py`, `readings.py`, `feed.py` | Farm/field, observation ingestion, yield estimate, market, and recommendation endpoints |
-| `backend/app/core/growth.py`, `feed_calculator.py`, `scheduler.py` | A small, documented yield baseline and transparent selling-window comparison |
-| `backend/simulator/` and `backend/seed_db.py` | Deterministic crop, weather, vegetation, yield, and market demo fixtures |
-| `frontend/src/pages/` and `frontend/src/components/` | Farm dashboard, field detail, market comparison, and recommendation explanation |
+| `backend/app/api/crop_analytics.py` | Crop dashboard API endpoint |
+| `backend/app/core/crop_analytics.py` | Yield and selling recommendation inputs and calculations |
+| `frontend/src/pages/CropDashboard.tsx` | Farmer dashboard, yield view, weather, market comparison, and recommendation |
 | `frontend/src/api/client.ts` and `frontend/src/types/index.ts` | Typed crop-domain API calls and interfaces |
-| Aquaculture tests in `backend/tests/` | Crop estimate, market comparison, API lifecycle, and deterministic demo-data coverage |
+| `backend/tests/` | Crop estimate, market comparison, and deterministic demo-data coverage |
 
 Keep the first demo deliberately small: one region, one or two crops, a handful of fields, and a few markets. Prefer traceable sample data and simple baselines over an opaque “AI” claim. Add external data integrations only when their source, access method, and demo fallback are clear.
 
@@ -56,7 +54,7 @@ Keep the first demo deliberately small: one region, one or two crops, a handful 
 
 1. Define crop-domain schemas and deterministic demo fixtures.
 2. Add field and observation endpoints plus a yield baseline with visible uncertainty.
-3. Replace the aquaculture frontend flow with a field dashboard and field detail view.
+3. Add a field dashboard and field-detail view backed by stored field data.
 4. Add market comparison and an explainable selling-window recommendation.
 5. Update tests, README setup instructions, screenshots, and the final demo script to describe the crop product accurately.
 

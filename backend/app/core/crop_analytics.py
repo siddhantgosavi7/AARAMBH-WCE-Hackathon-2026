@@ -14,7 +14,7 @@ def build_demo_dashboard() -> dict:
 
     return {
         "generated_on": today.isoformat(),
-        "data_mode": "Seeded demo data — replace with verified field, weather, satellite, and mandi feeds before production.",
+        "data_mode": "Seeded demo data — replace with verified field, weather, satellite, and mandi data sources before production.",
         "farm": {"name": "Patil Family Farm", "location": "Wardha, Maharashtra"},
         "summary": {
             "fields": 3,
