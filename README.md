@@ -5,6 +5,8 @@
 
 AquaFeed Optimizer dynamically calculates, schedules, and adjusts daily fish feed amounts based on water temperature, dissolved oxygen (DO), and species growth stages, minimizing feed waste and preventing lethal hypoxia and water pollution.
 
+> **Hackathon brief fit:** The current codebase is an aquaculture application. It does not yet implement the Crop Yield & Market Analytics Platform brief (satellite imagery, weather forecasts, crop yield prediction, or commodity selling recommendations). See [the product brief](docs/CROP_YIELD_MARKET_ANALYTICS_PRD.md) for the proposed target, MVP scope, and migration plan. Existing AquaFeed functionality remains documented below so the current software is represented accurately.
+
 ---
 
 ## 📂 Repository Structure
