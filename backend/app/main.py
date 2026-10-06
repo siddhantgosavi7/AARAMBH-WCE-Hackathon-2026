@@ -4,7 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.db.session import init_db
-from app.api import crop_analytics
+from app.db import models  # noqa: F401 — ensures all tables are registered with Base
+from app.api import crop_analytics, auth
 
 
 @asynccontextmanager
@@ -32,6 +33,7 @@ app.add_middleware(
 
 # API Routers
 app.include_router(crop_analytics.router, prefix="/api")
+app.include_router(auth.router, prefix="/api")
 
 
 @app.get("/")
@@ -51,3 +53,4 @@ def health_check():
         "database": "connected",
         "environment": settings.ENVIRONMENT,
     }
+

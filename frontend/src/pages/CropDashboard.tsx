@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client';
-import { BarChart3, CloudRain, LayoutDashboard, Leaf, MapPin, Sprout, TrendingUp, Wheat } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { BarChart3, CloudRain, LayoutDashboard, Leaf, LogOut, MapPin, Sprout, TrendingUp, Wheat } from 'lucide-react';
 
 type Tab = 'overview' | 'field' | 'health' | 'weather' | 'market' | 'advice';
 const rupees = (value: number) => `₹${value.toLocaleString('en-IN')}`;
@@ -43,23 +44,40 @@ export const CropDashboard: React.FC = () => {
   );
 };
 
-const Sidebar: React.FC<DashboardProps> = ({ activeTab, onTabChange }) => (
-  <aside className="lg:w-72 lg:min-h-screen bg-[#091b18] border-b lg:border-b-0 lg:border-r border-emerald-900/50 shrink-0">
-    <div className="p-5 lg:p-6 border-b border-emerald-900/50 flex lg:block items-center gap-3">
-      <div className="w-10 h-10 rounded-xl bg-emerald-500 text-slate-950 grid place-items-center"><Sprout className="w-6 h-6" /></div>
-      <div><p className="font-extrabold text-white leading-tight">KisanMitra</p><p className="text-[11px] text-emerald-300">Farm decisions, made simple</p></div>
-    </div>
-    <nav className="p-3 flex lg:block overflow-x-auto gap-1 lg:space-y-1" aria-label="Farm information">
-      {navItems.map(({ id, label, hint, icon: Icon }) => {
-        const active = id === activeTab;
-        return <button key={id} onClick={() => onTabChange(id)} className={`min-w-32 lg:w-full flex items-center gap-3 p-3 rounded-xl text-left transition-colors ${active ? 'bg-emerald-500 text-slate-950' : 'text-slate-200 hover:bg-emerald-950/60'}`}>
-          <Icon className="w-5 h-5 shrink-0" /><span><span className="block font-bold text-sm">{label}</span><span className={`block text-[11px] ${active ? 'text-emerald-950/80' : 'text-slate-400'}`}>{hint}</span></span>
-        </button>;
-      })}
-    </nav>
-    <p className="hidden lg:block px-6 pt-3 text-xs text-slate-500">Choose a title to see one topic at a time.</p>
-  </aside>
-);
+const Sidebar: React.FC<DashboardProps> = ({ activeTab, onTabChange }) => {
+  const { user, logout } = useAuth();
+  return (
+    <aside className="lg:w-72 lg:min-h-screen bg-[#091b18] border-b lg:border-b-0 lg:border-r border-emerald-900/50 shrink-0 flex flex-col">
+      <div className="p-5 lg:p-6 border-b border-emerald-900/50 flex lg:block items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-emerald-500 text-slate-950 grid place-items-center"><Sprout className="w-6 h-6" /></div>
+        <div><p className="font-extrabold text-white leading-tight">KisanMitra</p><p className="text-[11px] text-emerald-300">Farm decisions, made simple</p></div>
+      </div>
+      <nav className="p-3 flex lg:block overflow-x-auto gap-1 lg:space-y-1 flex-1" aria-label="Farm information">
+        {navItems.map(({ id, label, hint, icon: Icon }) => {
+          const active = id === activeTab;
+          return <button key={id} onClick={() => onTabChange(id)} className={`min-w-32 lg:w-full flex items-center gap-3 p-3 rounded-xl text-left transition-colors ${active ? 'bg-emerald-500 text-slate-950' : 'text-slate-200 hover:bg-emerald-950/60'}`}>
+            <Icon className="w-5 h-5 shrink-0" /><span><span className="block font-bold text-sm">{label}</span><span className={`block text-[11px] ${active ? 'text-emerald-950/80' : 'text-slate-400'}`}>{hint}</span></span>
+          </button>;
+        })}
+      </nav>
+      {/* User + logout */}
+      <div className="hidden lg:block p-4 border-t border-emerald-900/40">
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-950/30 border border-emerald-800/20">
+          <div className="w-8 h-8 rounded-lg bg-emerald-500/15 grid place-items-center text-emerald-400 font-bold text-xs">
+            {(user?.full_name ?? user?.username ?? 'F').split(' ').map((n) => n[0]).join('').slice(0, 2)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-white truncate">{user?.full_name ?? user?.username}</p>
+            <p className="text-[11px] text-emerald-400">Farmer</p>
+          </div>
+          <button onClick={logout} className="p-1.5 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-300 transition-colors" title="Sign out" aria-label="Sign out">
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </aside>
+  );
+};
 
 const DashboardContent: React.FC<DashboardProps & { data: Awaited<ReturnType<typeof api.getCropDashboard>> }> = ({ activeTab, onTabChange, data }) => {
   const field = data.selected_field;

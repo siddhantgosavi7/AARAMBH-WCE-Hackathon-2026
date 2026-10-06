@@ -12,3 +12,21 @@ export interface CropDashboard {
   markets: { market: string; price: number; change_pct: number; distance_km: number; gross_value_inr: number }[];
   recommendation: { title: string; action: string; why: string; best_market: string; best_price_inr: number; estimated_value_inr: number; assumptions: string };
 }
+
+// Auth types
+export type UserRole = 'admin' | 'farmer';
+
+export interface LoginResponse {
+  access_token: string;
+  token_type: string;
+  role: UserRole;
+  username: string;
+  full_name: string | null;
+}
+
+export interface AuthUser {
+  username: string;
+  role: UserRole;
+  full_name: string | null;
+  token: string;
+}
