@@ -6,9 +6,9 @@ Build a farmer-facing analytics application that combines field-level crop histo
 
 ## Current repository status
 
-The default web experience is now a runnable **Crop Yield & Market Analytics** dashboard. It presents a seeded soybean field with NDVI observations, local forecast, yield range, confidence score, mandi comparison, and an explainable selling recommendation. The API endpoint is `GET /api/crop-analytics/dashboard`.
+The default web experience is now a runnable **Crop Yield & Market Analytics** dashboard. A signed-in farmer submits field details, receives weather when the provider is available, and receives a saved yield baseline plus a market decision. The API endpoints are `POST /api/crop-analytics/analyze` and `GET /api/crop-analytics/latest`.
 
-The crop dashboard uses deterministic demo data and clearly labels it as such; live data ingestion, field persistence, and validated forecasting remain the next implementation phase.
+The dashboard uses persisted farmer input, live Open-Meteo weather when reachable, and clearly labelled bundled sample crop and market histories. Satellite integration and validated forecasting remain the next implementation phase.
 
 ## Users and decisions
 

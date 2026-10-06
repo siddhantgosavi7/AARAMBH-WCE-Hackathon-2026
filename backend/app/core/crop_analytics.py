@@ -1,77 +1,129 @@
-from datetime import date, timedelta
+import json
+from datetime import date
+from pathlib import Path
+from statistics import mean, pstdev
+from typing import Any
+
+DATA_DIR = Path(__file__).parent.parent / "data"
+HECTARES_PER_ACRE = 0.404686
+CROP_TARGET_DAYS = {"wheat": 120, "soybean": 105}
 
 
-def build_demo_dashboard() -> dict:
-    """Return a deterministic, explainable crop analytics demo payload."""
-    today = date.today()
-    expected_yield_tonnes = 18.4
-    markets = [
-        {"market": "Nagpur APMC", "price": 2425, "change_pct": 4.8, "distance_km": 38},
-        {"market": "Wardha APMC", "price": 2350, "change_pct": 1.7, "distance_km": 19},
-        {"market": "Amravati APMC", "price": 2490, "change_pct": 5.4, "distance_km": 92},
-    ]
-    gross_values = [round(expected_yield_tonnes * market["price"]) for market in markets]
+def _sample(name: str) -> dict[str, Any]:
+    return json.loads((DATA_DIR / name).read_text(encoding="utf-8"))
+
+
+def _weather_factor(weather: dict[str, Any]) -> tuple[float, list[str]]:
+    if weather.get("status") != "live" or not weather.get("forecast"):
+        return 1.0, ["Live weather was unavailable, so weather was not used in this estimate."]
+    rain = sum(day.get("rain_mm") or 0 for day in weather["forecast"][:7])
+    high = max((day.get("high_c") or 0) for day in weather["forecast"][:7])
+    factors, notes = [1.0], [f"Live 7-day rainfall forecast: {rain:.1f} mm."]
+    if rain > 100:
+        factors.append(0.95)
+        notes.append("Heavy forecast rain adds a drainage risk adjustment.")
+    elif 15 <= rain <= 80:
+        factors.append(1.02)
+        notes.append("Forecast rainfall is in a generally supportive range.")
+    if high >= 38:
+        factors.append(0.96)
+        notes.append("High forecast heat adds a crop-stress adjustment.")
+    return mean(factors), notes
+
+
+def _market_recommendation(prices: list[float], storage_days: int) -> dict[str, Any]:
+    current = prices[-1]
+    recent_average = mean(prices[-5:])
+    trend_pct = ((current - prices[0]) / prices[0]) * 100
+    if trend_pct <= -2:
+        decision = "SELL NOW"
+        reason = "The latest price is falling against the recent trend, so holding carries downside risk."
+    elif current < recent_average and trend_pct > 1 and storage_days >= 7:
+        decision = "WAIT"
+        reason = "The latest price is below the recent average while the overall trend is upward, and storage is available."
+    else:
+        decision = "MONITOR"
+        reason = "The recent price signal is mixed or storage time is limited. Recheck prices before committing a sale."
+    return {
+        "decision": decision,
+        "reason": reason,
+        "current_price_inr_per_quintal": round(current),
+        "recent_average_inr_per_quintal": round(recent_average),
+        "trend_pct": round(trend_pct, 1),
+        "history": prices,
+    }
+
+
+def analyze_farm(farm: Any, weather: dict[str, Any]) -> dict[str, Any]:
+    """Transparent baseline, not an ML model. Uses saved input, samples, and live weather when available."""
+    crop = farm.crop.lower()
+    yield_history = _sample("sample_crop_history.json")[crop]
+    market_history = _sample("sample_market_history.json")[crop]
+    historical_yields = yield_history["observations"]
+    baseline_yield = mean(historical_yields)
+    weather_multiplier, weather_notes = _weather_factor(weather)
+    crop_days = (date.today() - farm.sowing_date).days
+    maturity_ratio = min(crop_days / CROP_TARGET_DAYS[crop], 1.0)
+    maturity_multiplier = 0.85 + (0.15 * maturity_ratio)
+    yield_per_hectare = baseline_yield * weather_multiplier * maturity_multiplier
+    area_hectares = farm.area_acres * HECTARES_PER_ACRE
+    production_tonnes = yield_per_hectare * area_hectares
+    variation = pstdev(historical_yields) if len(historical_yields) > 1 else 0
+    uncertainty = max(variation * area_hectares, production_tonnes * 0.12)
+    market = _market_recommendation(market_history["prices"], farm.storage_days)
+    estimated_value = production_tonnes * 10 * market["current_price_inr_per_quintal"]
+    confidence = (
+        55 + (10 if weather.get("status") == "live" else 0) + (10 if maturity_ratio >= 0.75 else 0)
+    )
 
     return {
-        "generated_on": today.isoformat(),
-        "data_mode": "Seeded demo data — replace with verified field, weather, satellite, and mandi data sources before production.",
-        "farm": {"name": "Patil Family Farm", "location": "Wardha, Maharashtra"},
-        "summary": {
-            "fields": 3,
-            "expected_harvest_tonnes": 41.8,
-            "portfolio_value_inr": 101365,
-            "weather_risks": 1,
+        "data_mode": "Hybrid: saved farmer input + bundled sample historical crop/market data + live weather when available. Satellite data is not connected.",
+        "farm": {
+            "id": farm.id,
+            "name": farm.name,
+            "location": farm.location,
+            "crop": crop.title(),
+            "area_acres": farm.area_acres,
+            "sowing_date": farm.sowing_date.isoformat(),
+            "storage_days": farm.storage_days,
         },
-        "selected_field": {
-            "id": 1,
-            "name": "North Field",
-            "crop": "Soybean",
-            "variety": "JS 335",
-            "area_hectares": 4.2,
-            "planting_date": (today - timedelta(days=82)).isoformat(),
-            "harvest_window": f"{(today + timedelta(days=19)).strftime('%d %b')} – {(today + timedelta(days=29)).strftime('%d %b')}",
-            "crop_stage": "Pod filling",
-            "satellite": {
-                "indicator": "NDVI",
-                "current": 0.72,
-                "change_pct": 6.1,
-                "status": "Healthy canopy",
-                "series": [0.34, 0.42, 0.51, 0.59, 0.66, 0.68, 0.72],
-            },
-            "yield": {
-                "estimate_tonnes": expected_yield_tonnes,
-                "per_hectare": 4.38,
-                "low_tonnes": 16.7,
-                "high_tonnes": 20.1,
-                "confidence_pct": 78,
-                "drivers": [
-                    "Vegetation health is 6.1% above last week.",
-                    "Rain forecast supports pod filling; monitor drainage after Thursday.",
-                    "Historical yield for this field averages 4.1 t/ha.",
-                ],
-            },
+        "weather": weather,
+        "satellite": {
+            "status": "not_connected",
+            "message": "No satellite provider or field boundary has been configured. NDVI is not shown or used in the estimate.",
         },
-        "weather": {
-            "location": "Wardha, Maharashtra",
-            "forecast": [
-                {"day": "Today", "condition": "Partly cloudy", "high_c": 31, "rain_mm": 1},
-                {"day": "Wed", "condition": "Light rain", "high_c": 29, "rain_mm": 6},
-                {"day": "Thu", "condition": "Heavy rain", "high_c": 27, "rain_mm": 24},
-                {"day": "Fri", "condition": "Sunny", "high_c": 30, "rain_mm": 0},
+        "historical_crop_data": {
+            "source": yield_history["source"],
+            "unit": yield_history["unit"],
+            "observations": historical_yields,
+            "average_yield_per_hectare": round(baseline_yield, 2),
+        },
+        "yield_prediction": {
+            "method": "Transparent historical-yield baseline; this is not a trained ML model.",
+            "unit": "tonnes/hectare",
+            "yield_per_hectare": round(yield_per_hectare, 2),
+            "expected_production_tonnes": round(production_tonnes, 2),
+            "low_production_tonnes": round(max(0, production_tonnes - uncertainty), 2),
+            "high_production_tonnes": round(production_tonnes + uncertainty, 2),
+            "confidence_pct": confidence,
+            "inputs_used": [
+                "crop",
+                "farm area",
+                "sowing date",
+                "bundled historical yield observations",
+                *weather_notes,
             ],
-            "risk": "Heavy rain is expected Thursday. Inspect drainage and avoid field operations that day.",
+            "limitations": "No trained model evaluation, real historical field records, or satellite features are available in this prototype.",
         },
-        "markets": [
-            {**market, "gross_value_inr": gross_value}
-            for market, gross_value in zip(markets, gross_values)
-        ],
+        "market": {
+            "source": market_history["source"],
+            "market": market_history["market"],
+            "unit": market_history["unit"],
+            **market,
+        },
         "recommendation": {
-            "title": "Stage sales across two market windows",
-            "action": "Sell 40% at Nagpur APMC during the harvest window; monitor Amravati prices for the remaining 60%.",
-            "why": "Nagpur offers a strong nearby price and positive trend. Amravati has the highest quoted price, but its distance adds transport risk.",
-            "best_market": "Nagpur APMC",
-            "best_price_inr": 2425,
-            "estimated_value_inr": round(expected_yield_tonnes * 2425),
-            "assumptions": "Estimate uses seeded NDVI, forecast, historical yield, and market observations. Prices and yields are not guaranteed.",
+            **market,
+            "estimated_gross_value_inr": round(estimated_value),
+            "explanation": f"{market['reason']} Expected production is {production_tonnes:.2f} tonnes based on the stated baseline.",
         },
     }

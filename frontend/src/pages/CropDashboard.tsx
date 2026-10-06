@@ -1,104 +1,35 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useEffect, useState } from 'react';
+import { BarChart3, CloudRain, Leaf, LogOut, MapPin, Sprout, TrendingUp, Wheat } from 'lucide-react';
 import { api } from '../api/client';
+import { CropAnalysis, FarmInput } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { BarChart3, CloudRain, LayoutDashboard, Leaf, LogOut, MapPin, Sprout, TrendingUp, Wheat } from 'lucide-react';
 
-type Tab = 'overview' | 'field' | 'health' | 'weather' | 'market' | 'advice';
-const rupees = (value: number) => `₹${value.toLocaleString('en-IN')}`;
-
-const navItems = [
-  { id: 'overview', label: 'Overview', hint: 'Today at a glance', icon: LayoutDashboard },
-  { id: 'field', label: 'My Field', hint: 'Crop and yield', icon: Wheat },
-  { id: 'health', label: 'Crop Health', hint: 'Satellite view', icon: Leaf },
-  { id: 'weather', label: 'Weather', hint: 'Next 4 days', icon: CloudRain },
-  { id: 'market', label: 'Market Prices', hint: 'Compare mandis', icon: TrendingUp },
-  { id: 'advice', label: 'Selling Advice', hint: 'What to do next', icon: BarChart3 },
-] as const;
-
-interface DashboardProps {
-  activeTab: Tab;
-  onTabChange: (tab: Tab) => void;
-}
+const money = (value: number) => `₹${value.toLocaleString('en-IN')}`;
 
 export const CropDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
-  const { data, isLoading, isError } = useQuery({ queryKey: ['crop-dashboard'], queryFn: api.getCropDashboard });
-
-  if (isLoading) return <div className="p-10 text-emerald-100">Loading farm information…</div>;
-  if (isError || !data) return <div className="p-10 text-rose-300">Could not load farm information.</div>;
-
-  return (
-    <div className="min-h-screen bg-[#071513] text-slate-100 flex flex-col lg:flex-row">
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-      <main className="flex-1 min-w-0 p-4 sm:p-7">
-        <div className="max-w-5xl mx-auto">
-          <header className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div><p className="text-emerald-300 text-xs font-bold uppercase tracking-[0.16em]">{navItems.find((item) => item.id === activeTab)?.hint}</p><h1 className="text-2xl font-extrabold text-white">{data.farm.name}</h1><p className="text-sm text-slate-400 flex items-center gap-1 mt-1"><MapPin className="w-3.5 h-3.5" />{data.farm.location}</p></div>
-            <div className="rounded-xl border border-amber-500/25 bg-amber-950/25 px-3 py-2 text-xs text-amber-100">Demo data for hackathon presentation</div>
-          </header>
-          <DashboardContent activeTab={activeTab} onTabChange={setActiveTab} data={data} />
-        </div>
-      </main>
-    </div>
-  );
-};
-
-const Sidebar: React.FC<DashboardProps> = ({ activeTab, onTabChange }) => {
   const { user, logout } = useAuth();
-  return (
-    <aside className="lg:w-72 lg:min-h-screen bg-[#091b18] border-b lg:border-b-0 lg:border-r border-emerald-900/50 shrink-0 flex flex-col">
-      <div className="p-5 lg:p-6 border-b border-emerald-900/50 flex lg:block items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-emerald-500 text-slate-950 grid place-items-center"><Sprout className="w-6 h-6" /></div>
-        <div><p className="font-extrabold text-white leading-tight">KisanMitra</p><p className="text-[11px] text-emerald-300">Farm decisions, made simple</p></div>
-      </div>
-      <nav className="p-3 flex lg:block overflow-x-auto gap-1 lg:space-y-1 flex-1" aria-label="Farm information">
-        {navItems.map(({ id, label, hint, icon: Icon }) => {
-          const active = id === activeTab;
-          return <button key={id} onClick={() => onTabChange(id)} className={`min-w-32 lg:w-full flex items-center gap-3 p-3 rounded-xl text-left transition-colors ${active ? 'bg-emerald-500 text-slate-950' : 'text-slate-200 hover:bg-emerald-950/60'}`}>
-            <Icon className="w-5 h-5 shrink-0" /><span><span className="block font-bold text-sm">{label}</span><span className={`block text-[11px] ${active ? 'text-emerald-950/80' : 'text-slate-400'}`}>{hint}</span></span>
-          </button>;
-        })}
-      </nav>
-      {/* User + logout */}
-      <div className="hidden lg:block p-4 border-t border-emerald-900/40">
-        <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-950/30 border border-emerald-800/20">
-          <div className="w-8 h-8 rounded-lg bg-emerald-500/15 grid place-items-center text-emerald-400 font-bold text-xs">
-            {(user?.full_name ?? user?.username ?? 'F').split(' ').map((n) => n[0]).join('').slice(0, 2)}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-white truncate">{user?.full_name ?? user?.username}</p>
-            <p className="text-[11px] text-emerald-400">Farmer</p>
-          </div>
-          <button onClick={logout} className="p-1.5 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-300 transition-colors" title="Sign out" aria-label="Sign out">
-            <LogOut className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    </aside>
-  );
+  const [analysis, setAnalysis] = useState<CropAnalysis | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => { if (user) api.getLatestAnalysis(user.token).then(setAnalysis).catch((e) => setError(e.message)).finally(() => setLoading(false)); }, [user]);
+  if (!user) return null;
+  if (loading) return <Page><p>Loading your saved farm analysis…</p></Page>;
+  return <Page><header className="flex items-center justify-between mb-7"><div className="flex items-center gap-3"><div className="w-11 h-11 rounded-xl bg-emerald-500 text-slate-950 grid place-items-center"><Sprout /></div><div><h1 className="font-extrabold text-xl">KisanMitra</h1><p className="text-xs text-emerald-300">Farm decisions, made simple</p></div></div><button onClick={logout} className="text-sm text-slate-300 flex gap-2 items-center hover:text-white"><LogOut className="w-4 h-4" /> Sign out</button></header>{error && <p className="mb-4 rounded-xl p-3 bg-rose-950/50 text-rose-200">{error}</p>}{analysis ? <AnalysisView data={analysis} onNew={() => setAnalysis(null)} /> : <FarmForm token={user.token} onDone={setAnalysis} />}</Page>;
 };
 
-const DashboardContent: React.FC<DashboardProps & { data: Awaited<ReturnType<typeof api.getCropDashboard>> }> = ({ activeTab, onTabChange, data }) => {
-  const field = data.selected_field;
-  const chartMax = Math.max(...field.satellite.series);
+const Page: React.FC<{ children: React.ReactNode }> = ({ children }) => <main className="min-h-screen bg-[#071513] text-slate-100 p-4 sm:p-7"><div className="max-w-5xl mx-auto">{children}</div></main>;
 
-  if (activeTab === 'overview') return <section className="space-y-5">
-    <div className="farm-card-emerald rounded-2xl p-5 sm:p-7"><p className="text-emerald-300 text-xs font-bold uppercase tracking-wider">Your next step</p><h2 className="text-2xl font-extrabold mt-2">Check drainage before Thursday’s rain.</h2><p className="text-slate-300 mt-2">Your soybean field is healthy and expected to harvest in {field.harvest_window}. One weather risk needs attention.</p><button onClick={() => onTabChange('weather')} className="mt-5 bg-emerald-400 text-slate-950 px-4 py-2 rounded-lg text-sm font-bold">View weather advice</button></div>
-    <div className="grid sm:grid-cols-3 gap-4"><SummaryCard label="Expected harvest" value={`${field.yield.estimate_tonnes} tonnes`} /><SummaryCard label="Best nearby market" value={data.recommendation.best_market} /><SummaryCard label="Quoted price" value={`${rupees(data.recommendation.best_price_inr)} / q`} /></div>
-    <button onClick={() => onTabChange('advice')} className="w-full text-left farm-card rounded-2xl p-5 hover:border-emerald-400"><p className="text-xs text-emerald-300 font-bold uppercase tracking-wider">Selling advice</p><p className="font-bold text-white mt-2">{data.recommendation.action}</p><p className="text-sm text-slate-400 mt-1">Tap to read the full advice.</p></button>
-  </section>;
-
-  if (activeTab === 'field') return <section className="space-y-5"><PageTitle title="My Field" description="Your crop and harvest estimate." /><div className="farm-card-emerald rounded-2xl p-6"><div className="flex flex-col sm:flex-row sm:justify-between gap-4"><div><h2 className="text-2xl font-extrabold">{field.name}</h2><p className="text-slate-300 mt-1">{field.crop} · {field.variety} · {field.area_hectares} hectares</p><p className="text-emerald-300 text-sm mt-2">Current stage: {field.crop_stage}</p></div><div className="rounded-xl bg-[#081d18] px-4 py-3"><p className="text-xs text-slate-400">Harvest window</p><p className="font-bold mt-1">{field.harvest_window}</p></div></div></div><div className="grid sm:grid-cols-3 gap-4"><SummaryCard label="Expected harvest" value={`${field.yield.estimate_tonnes} tonnes`} note={`${field.yield.low_tonnes}–${field.yield.high_tonnes} tonne range`} /><SummaryCard label="Yield per hectare" value={`${field.yield.per_hectare} t/ha`} /><SummaryCard label="Confidence" value={`${field.yield.confidence_pct}%`} /></div><div className="farm-card rounded-2xl p-5"><h3 className="font-bold">Why this estimate?</h3><ul className="mt-3 space-y-2 text-sm text-slate-300">{field.yield.drivers.map((driver) => <li key={driver}>• {driver}</li>)}</ul></div></section>;
-
-  if (activeTab === 'health') return <section className="space-y-5"><PageTitle title="Crop Health" description="Satellite observations show how your crop canopy is growing." /><div className="farm-card rounded-2xl p-6"><p className="text-sm text-slate-400">NDVI today</p><p className="text-4xl font-extrabold mt-1">{field.satellite.current} <span className="text-lg text-emerald-300">+{field.satellite.change_pct}%</span></p><div className="h-52 flex items-end gap-3 mt-8">{field.satellite.series.map((value, index) => <div key={index} className="flex-1 text-center"><div className="rounded-t bg-gradient-to-t from-emerald-600 to-cyan-300" style={{ height: `${(value / chartMax) * 100}%` }} /><span className="text-[10px] text-slate-500">Week {index + 1}</span></div>)}</div><p className="mt-5 text-emerald-300 font-semibold">{field.satellite.status}</p></div></section>;
-
-  if (activeTab === 'weather') return <section className="space-y-5"><PageTitle title="Weather" description="Plan field work around this local forecast." /><div className="grid grid-cols-2 sm:grid-cols-4 gap-3">{data.weather.forecast.map((day) => <div key={day.day} className="farm-card rounded-2xl p-4 text-center"><p className="font-bold">{day.day}</p><p className="text-xs text-slate-400 mt-2">{day.condition}</p><p className="text-2xl text-amber-200 mt-3">{day.high_c}°</p><p className="text-sm text-cyan-300">{day.rain_mm} mm rain</p></div>)}</div><div className="farm-card-amber rounded-2xl p-5"><p className="font-bold text-amber-200">What you should do</p><p className="mt-2 text-slate-200">{data.weather.risk}</p></div></section>;
-
-  if (activeTab === 'market') return <section className="space-y-5"><PageTitle title="Market Prices" description="Compare nearby mandi prices before selling." /><div className="farm-card rounded-2xl p-5 overflow-x-auto"><table className="w-full text-sm min-w-[560px]"><thead className="text-left text-xs text-slate-400 border-b border-slate-700"><tr><th className="pb-3">Market</th><th className="pb-3 text-right">Price / q</th><th className="pb-3 text-right">Trend</th><th className="pb-3 text-right">Distance</th><th className="pb-3 text-right">Gross value</th></tr></thead><tbody>{data.markets.map((market) => <tr key={market.market} className="border-b border-slate-800"><td className="py-4 font-bold">{market.market}</td><td className="py-4 text-right">{rupees(market.price)}</td><td className="py-4 text-right text-emerald-300">+{market.change_pct}%</td><td className="py-4 text-right">{market.distance_km} km</td><td className="py-4 text-right text-amber-200">{rupees(market.gross_value_inr)}</td></tr>)}</tbody></table></div></section>;
-
-  return <section className="space-y-5"><PageTitle title="Selling Advice" description="A simple recommendation based on your expected harvest and market prices." /><div className="farm-card-emerald rounded-2xl p-6"><p className="text-emerald-300 text-xs font-bold uppercase tracking-wider">Recommended action</p><h2 className="text-2xl font-extrabold mt-2">{data.recommendation.title}</h2><p className="text-lg font-semibold text-emerald-100 mt-5">{data.recommendation.action}</p><p className="text-slate-300 mt-3">{data.recommendation.why}</p><div className="grid sm:grid-cols-3 gap-4 mt-6"><SummaryCard label="Suggested market" value={data.recommendation.best_market} /><SummaryCard label="Current price" value={`${rupees(data.recommendation.best_price_inr)} / q`} /><SummaryCard label="Expected value" value={rupees(data.recommendation.estimated_value_inr)} /></div><p className="text-xs text-slate-400 mt-6">{data.recommendation.assumptions}</p></div></section>;
+const FarmForm: React.FC<{ token: string; onDone: (value: CropAnalysis) => void }> = ({ token, onDone }) => {
+  const [form, setForm] = useState<FarmInput>({ farm_name: 'Patil Family Farm', field_name: 'North Field', location: 'Kolhapur, Maharashtra', crop: 'wheat', area_acres: 5, sowing_date: '2026-07-01', storage_days: 7 });
+  const [loading, setLoading] = useState(false); const [error, setError] = useState<string | null>(null);
+  const set = (key: keyof FarmInput, value: string | number) => setForm((previous) => ({ ...previous, [key]: value }));
+  const submit = async (event: React.FormEvent) => { event.preventDefault(); setLoading(true); setError(null); try { onDone(await api.analyzeFarm(form, token)); } catch (e) { setError(e instanceof Error ? e.message : 'Analysis could not be created.'); } finally { setLoading(false); } };
+  return <section className="farm-card-emerald rounded-2xl p-5 sm:p-7"><p className="text-emerald-300 text-xs font-bold uppercase tracking-wider">Start an analysis</p><h2 className="text-2xl font-extrabold mt-2">Tell us about your field</h2><p className="text-slate-300 mt-2">We use these details with available weather and clearly labelled sample crop and market history.</p><form onSubmit={submit} className="grid sm:grid-cols-2 gap-4 mt-6">{[
+    ['Farm name', 'farm_name', 'text'], ['Field name', 'field_name', 'text'], ['Location', 'location', 'text'], ['Farm area (acres)', 'area_acres', 'number'], ['Sowing date', 'sowing_date', 'date'], ['Storage available (days)', 'storage_days', 'number'],
+  ].map(([label, key, type]) => <label key={key} className="text-sm text-slate-300">{label}<input required type={type} value={form[key as keyof FarmInput] as string | number} onChange={(e) => set(key as keyof FarmInput, type === 'number' ? Number(e.target.value) : e.target.value)} className="mt-1.5 w-full rounded-lg bg-[#081d18] border border-emerald-900 p-3 text-white" /></label>)}<label className="text-sm text-slate-300">Crop<select value={form.crop} onChange={(e) => set('crop', e.target.value)} className="mt-1.5 w-full rounded-lg bg-[#081d18] border border-emerald-900 p-3 text-white"><option value="wheat">Wheat</option><option value="soybean">Soybean</option></select></label><div className="sm:col-span-2">{error && <p className="text-rose-300 text-sm mb-3">{error}</p>}<button disabled={loading} className="bg-emerald-400 text-slate-950 font-bold px-5 py-3 rounded-lg disabled:opacity-60">{loading ? 'Loading weather and calculating…' : 'Analyze my farm'}</button></div></form></section>;
 };
 
-const PageTitle: React.FC<{ title: string; description: string }> = ({ title, description }) => <div><h2 className="text-2xl font-extrabold">{title}</h2><p className="text-slate-400 mt-1">{description}</p></div>;
-const SummaryCard: React.FC<{ label: string; value: string; note?: string }> = ({ label, value, note }) => <div className="farm-card rounded-2xl p-5"><p className="text-xs text-slate-400">{label}</p><p className="text-xl font-extrabold text-white mt-2">{value}</p>{note && <p className="text-xs text-emerald-300 mt-2">{note}</p>}</div>;
+const AnalysisView: React.FC<{ data: CropAnalysis; onNew: () => void }> = ({ data, onNew }) => <section className="space-y-5"><div className="flex flex-col sm:flex-row sm:justify-between gap-3"><div><p className="text-emerald-300 text-xs font-bold uppercase tracking-wider">Farm analysis</p><h2 className="text-2xl font-extrabold mt-1">{data.farm.name} · {data.farm.crop}</h2><p className="text-slate-400 flex gap-1 items-center mt-1"><MapPin className="w-4 h-4" />{data.farm.location} · {data.farm.area_acres} acres</p></div><button onClick={onNew} className="self-start border border-emerald-700 px-4 py-2 rounded-lg text-sm">Analyze another field</button></div><div className="rounded-xl bg-amber-950/30 border border-amber-500/30 p-3 text-sm text-amber-100">{data.data_mode}</div><div className="grid sm:grid-cols-3 gap-4"><Card icon={Wheat} label="Expected production" value={`${data.yield_prediction.expected_production_tonnes} tonnes`} note={`${data.yield_prediction.low_production_tonnes}–${data.yield_prediction.high_production_tonnes} tonne range`} /><Card icon={TrendingUp} label="Current market price" value={`${money(data.market.current_price_inr_per_quintal)} / quintal`} note={`${data.market.market} · ${data.market.trend_pct >= 0 ? '+' : ''}${data.market.trend_pct}% trend`} /><Card icon={BarChart3} label="Selling decision" value={data.recommendation.decision} note={data.recommendation.reason} /></div><div className="grid lg:grid-cols-2 gap-5"><section className="farm-card rounded-2xl p-5"><div className="flex items-center gap-2"><CloudRain className="text-cyan-300" /><h3 className="font-bold">Weather</h3></div>{data.weather.status === 'live' ? <><p className="text-xs text-emerald-300 mt-2">Live forecast from {data.weather.source}</p><div className="grid grid-cols-3 gap-2 mt-4">{data.weather.forecast.slice(0, 3).map((day) => <div key={day.date} className="bg-[#081d18] rounded-lg p-3 text-center"><p className="text-xs">{day.date.slice(5)}</p><p className="text-lg text-amber-200 mt-1">{day.high_c}°</p><p className="text-xs text-cyan-300">{day.rain_mm} mm</p><p className="text-[10px] text-slate-400">{day.humidity_pct}% humidity</p></div>)}</div></> : <p className="text-amber-200 mt-3">Weather unavailable: {data.weather.error}. The yield estimate was calculated without a weather adjustment.</p>}</section><section className="farm-card rounded-2xl p-5"><div className="flex items-center gap-2"><Leaf className="text-emerald-300" /><h3 className="font-bold">Satellite crop health</h3></div><p className="text-slate-300 mt-3">{data.satellite.message}</p><p className="text-xs text-slate-500 mt-3">Connect a satellite provider and field boundary before using NDVI in the prediction.</p></section></div><section className="farm-card rounded-2xl p-5"><h3 className="font-bold">Yield calculation</h3><p className="text-sm text-slate-300 mt-2">{data.yield_prediction.method}</p><p className="text-3xl font-extrabold mt-4">{data.yield_prediction.yield_per_hectare} <span className="text-base font-normal">tonnes/hectare</span></p><p className="text-sm text-slate-400 mt-3">Inputs used: {data.yield_prediction.inputs_used.join(' ')}</p><p className="text-xs text-amber-200 mt-3">{data.yield_prediction.limitations}</p></section><section className="farm-card-emerald rounded-2xl p-5"><p className="text-emerald-300 text-xs font-bold uppercase tracking-wider">Selling recommendation</p><h3 className="text-2xl font-extrabold mt-2">{data.recommendation.decision}</h3><p className="text-emerald-100 font-semibold mt-3">{data.recommendation.explanation}</p><p className="text-slate-300 mt-2">Latest price {money(data.market.current_price_inr_per_quintal)} compared with recent average {money(data.market.recent_average_inr_per_quintal)}. Historical price series: {data.market.history.join(', ')} INR/quintal.</p></section></section>;
+
+const Card: React.FC<{ icon: React.ElementType; label: string; value: string; note: string }> = ({ icon: Icon, label, value, note }) => <div className="farm-card rounded-2xl p-5"><Icon className="w-5 h-5 text-emerald-300" /><p className="text-xs text-slate-400 mt-3">{label}</p><p className="text-xl font-extrabold mt-1">{value}</p><p className="text-xs text-slate-400 mt-2">{note}</p></div>;

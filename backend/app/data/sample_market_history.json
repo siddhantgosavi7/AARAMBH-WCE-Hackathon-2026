@@ -1,0 +1,14 @@
+{
+  "wheat": {
+    "source": "Sample mandi price observations bundled for the hackathon demo",
+    "unit": "INR/quintal",
+    "market": "Kolhapur APMC",
+    "prices": [2290, 2320, 2300, 2350, 2380, 2410, 2390]
+  },
+  "soybean": {
+    "source": "Sample mandi price observations bundled for the hackathon demo",
+    "unit": "INR/quintal",
+    "market": "Wardha APMC",
+    "prices": [4280, 4320, 4290, 4350, 4380, 4410, 4390]
+  }
+}

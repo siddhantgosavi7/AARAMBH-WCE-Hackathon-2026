@@ -1,17 +1,45 @@
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api import auth, crop_analytics
 from app.config import settings
-from app.db.session import init_db
+from app.core.security import hash_password
 from app.db import models  # noqa: F401 — ensures all tables are registered with Base
-from app.api import crop_analytics, auth
+from app.db.models import User
+from app.db.session import SessionLocal, init_db
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize database schemas
     init_db()
+    db = SessionLocal()
+    try:
+        if not db.query(User).filter(User.username == "farmer").first():
+            db.add(
+                User(
+                    username="farmer",
+                    hashed_password=hash_password("farmer123"),
+                    role="farmer",
+                    full_name="Demo Farmer",
+                    farm_name="Demo Farm",
+                    location="Kolhapur, Maharashtra",
+                )
+            )
+        if not db.query(User).filter(User.username == "admin").first():
+            db.add(
+                User(
+                    username="admin",
+                    hashed_password=hash_password("admin123"),
+                    role="admin",
+                    full_name="Platform Administrator",
+                )
+            )
+        db.commit()
+    finally:
+        db.close()
     yield
 
 
@@ -53,4 +81,3 @@ def health_check():
         "database": "connected",
         "environment": settings.ENVIRONMENT,
     }
-

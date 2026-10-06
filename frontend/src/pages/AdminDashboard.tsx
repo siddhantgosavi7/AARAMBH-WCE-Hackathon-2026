@@ -106,6 +106,10 @@ export const AdminDashboard: React.FC = () => {
             </button>
           </header>
 
+          <div className="mb-5 rounded-xl border border-amber-500/25 bg-amber-950/25 p-3 text-sm text-amber-100">
+            Demo administrator view: farmer counts, alerts, and crop-health figures on this screen are sample data and are not connected to the analysis database.
+          </div>
+
           {activeTab === 'overview' && <AdminOverview />}
           {activeTab === 'farmers' && <AdminFarmers />}
           {activeTab === 'alerts' && <AdminAlerts />}

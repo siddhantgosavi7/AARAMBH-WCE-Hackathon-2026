@@ -1,4 +1,4 @@
-import { CropDashboard, LoginResponse } from '../types';
+import { CropAnalysis, FarmInput, LoginResponse } from '../types';
 
 const BASE_URL = '/api';
 
@@ -11,8 +11,10 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 export const api = {
-  getCropDashboard: (): Promise<CropDashboard> =>
-    fetch(`${BASE_URL}/crop-analytics/dashboard`).then(handleResponse<CropDashboard>),
+  analyzeFarm: (input: FarmInput, token: string): Promise<CropAnalysis> =>
+    fetch(`${BASE_URL}/crop-analytics/analyze`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(input) }).then(handleResponse<CropAnalysis>),
+  getLatestAnalysis: (token: string): Promise<CropAnalysis | null> =>
+    fetch(`${BASE_URL}/crop-analytics/latest`, { headers: { Authorization: `Bearer ${token}` } }).then(handleResponse<CropAnalysis | null>),
 
   login: (username: string, password: string): Promise<LoginResponse> => {
     const body = new URLSearchParams({ username, password });
@@ -23,4 +25,3 @@ export const api = {
     }).then(handleResponse<LoginResponse>);
   },
 };
-
