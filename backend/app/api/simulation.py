@@ -7,10 +7,10 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional
 
-# Ensure aquafeed project root is in sys.path
-_project_root = Path(__file__).resolve().parent.parent.parent.parent
-if str(_project_root) not in sys.path:
-    sys.path.insert(0, str(_project_root))
+# Ensure backend directory is in sys.path
+_backend_root = Path(__file__).resolve().parent.parent.parent
+if str(_backend_root) not in sys.path:
+    sys.path.insert(0, str(_backend_root))
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from sqlalchemy.orm import Session
