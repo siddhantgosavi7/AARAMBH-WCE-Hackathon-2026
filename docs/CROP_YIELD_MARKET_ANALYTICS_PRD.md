@@ -6,9 +6,9 @@ Build a farmer-facing analytics application that combines field-level crop histo
 
 ## Current repository status
 
-The current application is **AquaFeed Optimizer**, an aquaculture monitoring and feeding product. Its domain models are ponds, fish, readings, feed plans, and alerts. The React dashboard, API routes, simulator, seed data, and tests all use that domain. The repository has no crop, field, satellite, weather-forecast, yield, or commodity-market modules, and no previous PRD was present in `docs/` when this brief was written.
+The default web experience is now a runnable **Crop Yield & Market Analytics** dashboard. It presents a seeded soybean field with NDVI observations, local forecast, yield range, confidence score, mandi comparison, and an explainable selling recommendation. The API endpoint is `GET /api/crop-analytics/dashboard`.
 
-The existing project is a useful runnable foundation for a demo (FastAPI, React/TypeScript, SQLite, Docker Compose, sample data, and a dashboard), but its aquaculture logic cannot be presented as crop analytics. The crop product requires a deliberate domain pivot across the data model, API, seed/demo data, frontend, and tests.
+The original repository still contains legacy AquaFeed models, routes, simulator, seed data, and tests. They are no longer used by the default frontend. The crop dashboard uses deterministic demo data and clearly labels it as such; live data ingestion, field persistence, and validated forecasting remain the next implementation phase.
 
 ## Users and decisions
 

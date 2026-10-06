@@ -1,88 +1,69 @@
-# AquaFeed Optimizer 🐟💧🌾
+# Crop Yield & Market Analytics Platform
 
-> **Precision Aquaculture Feeding & Water Quality Optimization System**  
-> *Aligned with UN Sustainable Development Goals: SDG 2, SDG 6, SDG 12, SDG 14.*
+Farmer-focused decision-support software that brings together field history, satellite crop-health observations, local weather, and mandi price comparisons. It estimates crop yield and explains a practical selling recommendation for a selected field.
 
-AquaFeed Optimizer dynamically calculates, schedules, and adjusts daily fish feed amounts based on water temperature, dissolved oxygen (DO), and species growth stages, minimizing feed waste and preventing lethal hypoxia and water pollution.
+## What the demo does
 
-> **Hackathon brief fit:** The current codebase is an aquaculture application. It does not yet implement the Crop Yield & Market Analytics Platform brief (satellite imagery, weather forecasts, crop yield prediction, or commodity selling recommendations). See [the product brief](docs/CROP_YIELD_MARKET_ANALYTICS_PRD.md) for the proposed target, MVP scope, and migration plan. Existing AquaFeed functionality remains documented below so the current software is represented accurately.
+- Shows a farmer's portfolio summary: monitored fields, expected harvest, estimated value, and weather risks.
+- Shows a field's crop, area, growing stage, satellite NDVI trend, and harvest window.
+- Gives an explainable yield estimate with a range and confidence score.
+- Shows a short local weather forecast and an operational risk.
+- Compares commodity prices, price trends, distance, and estimated gross value across nearby mandis.
+- Recommends a selling strategy and explains the assumptions behind it.
 
----
+The initial dashboard uses deterministic seeded demo data so it can run reliably without network access or API credentials. Every screen labels that limitation. The next integration step is to replace those fixtures with verified weather, satellite, field-history, and mandi-price sources.
 
-## 📂 Repository Structure
+## Run with Docker
 
-```
-d:/WCE/
-├── backend/            # FastAPI, SQLAlchemy, SQLite, Bioenergetic Core Engine, Simulator & Tests
-│   ├── app/
-│   │   ├── api/        # REST routers: ponds, readings, feed, alerts, reports, simulation
-│   │   ├── core/       # Pure functions: species profiles, growth, feed calculator, scheduler, pollution, alerts
-│   │   ├── models/     # SQLAlchemy ORM models
-│   │   ├── schemas/    # Pydantic schemas
-│   │   ├── db/         # Database session & engine
-│   │   ├── config.py
-│   │   └── main.py
-│   ├── simulator/      # Diurnal sensor simulator & scenario presets
-│   ├── tests/          # Pytest unit & integration test suite (62 tests)
-│   ├── seed_db.py      # Demo seeder with 3 realistic ponds (Healthy, Heat Stress, DO Crash)
-│   ├── requirements.txt
-│   └── Dockerfile
-├── frontend/           # React 18, Vite, TypeScript, Tailwind CSS, Recharts, React Query
-│   ├── src/
-│   │   ├── pages/      # Dashboard, PondDetail, Schedule, Alerts, Reports, What-If Simulator
-│   │   ├── components/ # TelemetryGauge, StageBadge, AlertBanner, CreatePondModal, Navbar
-│   │   ├── api/        # Typed API client
-│   │   └── types/      # TypeScript domain interfaces
-│   ├── package.json
-│   └── Dockerfile
-├── docker-compose.yml  # One-command container orchestration (Backend + Frontend)
-└── README.md
-```
-
----
-
-## ⚡ Quick Start
-
-### Option 1: Docker Compose (One-Command Launch)
-```bash
+```powershell
+cd D:\WCE
 docker compose up --build
 ```
-- **Frontend Dashboard**: `http://localhost:3000`
-- **Backend API & Swagger Docs**: `http://localhost:8000/docs`
 
----
+Open the dashboard at http://localhost:3000 and API documentation at http://localhost:8000/docs.
 
-### Option 2: Local Development
+To stop the services:
 
-#### 1. Backend Setup & Run
-```bash
-cd backend
+```powershell
+docker compose down
+```
+
+## Run locally
+
+Start the API:
+
+```powershell
+cd D:\WCE\backend
 pip install -r requirements.txt
-python -m pytest tests/ -v
-python seed_db.py
 uvicorn app.main:app --reload --port 8000
 ```
 
-#### 2. Frontend Setup & Run
-```bash
-cd frontend
+In a second terminal, start the web app:
+
+```powershell
+cd D:\WCE\frontend
 npm install
 npm run dev
 ```
-Open `http://localhost:5173`.
 
----
+Open the Vite address printed in the terminal, normally http://localhost:5173.
 
-## 🧪 Running Backend Tests
+## Main endpoint
 
-```bash
-cd backend
-python -m pytest tests/ -v
+`GET /api/crop-analytics/dashboard` returns the data used by the dashboard, including field details, crop-health observations, weather outlook, market comparisons, and the selling recommendation.
+
+## Structure
+
+```
+backend/app/api/crop_analytics.py       Crop dashboard API endpoint
+backend/app/core/crop_analytics.py      Explainable deterministic demo data and recommendation
+backend/tests/test_crop_analytics.py    Dashboard data checks
+frontend/src/pages/CropDashboard.tsx    Farmer-facing dashboard
+frontend/src/api/client.ts               Typed API client
+frontend/src/types/index.ts              Dashboard type definitions
+docs/CROP_YIELD_MARKET_ANALYTICS_PRD.md Product requirements and delivery plan
 ```
 
-All 62 unit and integration tests validate:
-- Pure bioenergetic calculations
-- Species and stage thresholds
-- Temperature bell curve and hypoxia cut-off ($DO < 3.0$ mg/L $\implies 0$ kg feed)
-- Mass balance nitrogen load and 0–100 Pollution Risk Index
-- REST API lifecycle endpoints and CSV bulk ingestion
+## Product scope
+
+See [the product brief](docs/CROP_YIELD_MARKET_ANALYTICS_PRD.md) for the full MVP, data-source plan, and demo criteria.

@@ -5,12 +5,12 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: aquafeed-backend
+    container_name: crop-analytics-backend
     restart: unless-stopped
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=sqlite:///./data/aquafeed.db
+      - DATABASE_URL=sqlite:///./data/crop_analytics.db
       - ENVIRONMENT=development
       - CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173
     volumes:
@@ -25,7 +25,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: aquafeed-frontend
+    container_name: crop-analytics-frontend
     restart: unless-stopped
     ports:
       - "3000:80"

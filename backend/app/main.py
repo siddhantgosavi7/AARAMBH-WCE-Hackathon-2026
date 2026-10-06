@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.db.session import init_db
-from app.api import ponds, readings, feed, alerts, reports, simulation
+from app.api import crop_analytics
 
 
 @asynccontextmanager
@@ -17,7 +17,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    description="Precision Aquaculture Feeding & Water Quality Optimization API",
+    description="Crop yield forecasting and market decision support API",
     lifespan=lifespan,
 )
 
@@ -31,12 +31,7 @@ app.add_middleware(
 )
 
 # API Routers
-app.include_router(ponds.router, prefix="/api")
-app.include_router(readings.router, prefix="/api")
-app.include_router(feed.router, prefix="/api")
-app.include_router(alerts.router, prefix="/api")
-app.include_router(reports.router, prefix="/api")
-app.include_router(simulation.router, prefix="/api")
+app.include_router(crop_analytics.router, prefix="/api")
 
 
 @app.get("/")

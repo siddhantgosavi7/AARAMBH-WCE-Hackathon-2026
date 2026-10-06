@@ -29,6 +29,4 @@ def get_db() -> Generator[Session, None, None]:
 
 
 def init_db() -> None:
-    # Import all models to ensure metadata registration
-    from app.models import pond, reading, feed, alert, metric  # noqa: F401
     Base.metadata.create_all(bind=engine)
