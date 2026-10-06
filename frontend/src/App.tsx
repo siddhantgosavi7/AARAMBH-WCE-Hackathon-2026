@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from './api/client';
 import { Pond, Reading } from './types';
-import { Navbar } from './components/Navbar';
+import { Sidebar } from './components/Sidebar';
+import { TopHeader } from './components/TopHeader';
 import { AlertBanner } from './components/AlertBanner';
 import { CreatePondModal } from './components/CreatePondModal';
 import { Dashboard } from './pages/Dashboard';
@@ -187,16 +188,16 @@ export const App: React.FC = () => {
   const activeAlerts = alerts.filter((a) => !a.is_resolved);
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
+    <div className="min-h-screen flex bg-[#071513] text-slate-100 font-sans selection:bg-emerald-500 selection:text-slate-950">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl bg-cyan-950 border border-cyan-400 text-cyan-200 text-xs font-semibold shadow-2xl animate-bounce">
+        <div className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl bg-emerald-950 border border-emerald-400 text-emerald-200 text-xs font-semibold shadow-2xl animate-bounce">
           {toastMessage}
         </div>
       )}
 
-      {/* Navbar */}
-      <Navbar
+      {/* Sidebar Navigation (Replaces top navbar as requested) */}
+      <Sidebar
         currentTab={currentTab}
         setCurrentTab={(tab) => {
           setCurrentTab(tab);
@@ -209,101 +210,109 @@ export const App: React.FC = () => {
         isTicking={manualTickMutation.isPending}
       />
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Global Active Alert Banner on top of all pages */}
-        <AlertBanner
-          alerts={activeAlerts}
-          onResolve={(id) => resolveAlertMutation.mutate(id)}
+      {/* Main Content Area with Top Header */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+        <TopHeader
+          currentTab={currentTab}
+          onOpenCreateModal={() => setIsCreateModalOpen(true)}
+          onUploadCsv={(file) => uploadCsvMutation.mutate(file)}
         />
 
-        {/* Tab Routing */}
-        {currentTab === 'dashboard' && (
-          <Dashboard
-            ponds={ponds}
-            readingsMap={readingsMap}
-            alerts={alerts}
-            onSelectPond={(id) => {
-              setSelectedPondId(id);
-              setCurrentTab('pond-detail');
-            }}
-            onOpenCreateModal={() => setIsCreateModalOpen(true)}
-            onUploadCsv={(file) => uploadCsvMutation.mutate(file)}
+        <main className="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
+          {/* Real-time Alerts Banner if any active */}
+          <AlertBanner
+            alerts={activeAlerts}
+            onResolve={(id) => resolveAlertMutation.mutate(id)}
           />
-        )}
 
-        {currentTab === 'pond-detail' && selectedPond && (
-          <PondDetail
-            pond={selectedPond}
-            readings={selectedPondReadings}
-            feedPlan={selectedPondFeedPlan}
-            onBack={() => {
-              setCurrentTab('dashboard');
-              setSelectedPondId(null);
-            }}
-            onLogMeal={(mealNum, kg, resp, leftPct) => {
-              if (selectedPondId) {
-                logMealMutation.mutate({
-                  pondId: selectedPondId,
-                  data: {
-                    meal_number: mealNum,
-                    feed_given_kg: kg,
-                    feed_response: resp,
-                    leftover_pct: leftPct,
-                  },
-                });
-              }
-            }}
-            onAddManualReading={(reading) => {
-              if (selectedPondId) {
-                manualReadingMutation.mutate({
-                  pond_id: selectedPondId,
-                  ...reading,
-                });
-              }
-            }}
-          />
-        )}
+          {/* Active Tab Screen */}
+          {currentTab === 'dashboard' && (
+            <Dashboard
+              ponds={ponds}
+              readingsMap={readingsMap}
+              alerts={alerts}
+              onSelectPond={(id) => {
+                setSelectedPondId(id);
+                setCurrentTab('pond-detail');
+              }}
+              onOpenCreateModal={() => setIsCreateModalOpen(true)}
+              onUploadCsv={(file) => uploadCsvMutation.mutate(file)}
+            />
+          )}
 
-        {currentTab === 'schedule' && (
-          <ScheduleView
-            ponds={ponds}
-            plansMap={plansMap}
-            onSelectPond={(id) => {
-              setSelectedPondId(id);
-              setCurrentTab('pond-detail');
-            }}
-          />
-        )}
+          {currentTab === 'pond-detail' && selectedPond && (
+            <PondDetail
+              pond={selectedPond}
+              readings={selectedPondReadings}
+              feedPlan={selectedPondFeedPlan}
+              onBack={() => {
+                setCurrentTab('dashboard');
+                setSelectedPondId(null);
+              }}
+              onLogMeal={(mealNum, kg, resp, leftPct) => {
+                if (selectedPondId) {
+                  logMealMutation.mutate({
+                    pondId: selectedPondId,
+                    data: {
+                      meal_number: mealNum,
+                      feed_given_kg: kg,
+                      feed_response: resp,
+                      leftover_pct: leftPct,
+                    },
+                  });
+                }
+              }}
+              onAddManualReading={(reading) => {
+                if (selectedPondId) {
+                  manualReadingMutation.mutate({
+                    pond_id: selectedPondId,
+                    ...reading,
+                  });
+                }
+              }}
+            />
+          )}
 
-        {currentTab === 'alerts' && (
-          <AlertsView
-            alerts={alerts}
-            ponds={ponds}
-            onResolveAlert={(id) => resolveAlertMutation.mutate(id)}
-          />
-        )}
+          {currentTab === 'schedule' && (
+            <ScheduleView
+              ponds={ponds}
+              plansMap={plansMap}
+              onSelectPond={(id) => {
+                setSelectedPondId(id);
+                setCurrentTab('pond-detail');
+              }}
+            />
+          )}
 
-        {currentTab === 'reports' && (
-          <ReportsView report={savingsReport} />
-        )}
+          {currentTab === 'alerts' && (
+            <AlertsView
+              alerts={alerts}
+              ponds={ponds}
+              onResolveAlert={(id) => resolveAlertMutation.mutate(id)}
+            />
+          )}
 
-        {currentTab === 'simulator' && (
-          <WhatIfSimulator />
-        )}
-      </main>
+          {currentTab === 'reports' && (
+            <ReportsView report={savingsReport} />
+          )}
 
-      {/* Stock New Pond Modal */}
+          {currentTab === 'simulator' && (
+            <WhatIfSimulator />
+          )}
+        </main>
+
+        <footer className="border-t border-emerald-950/80 bg-[#071714] py-4 px-6 text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <p>© 2026 AquaFeed Optimizer • Precision Aquaculture & Limnological Bioenergetics</p>
+          <p className="text-emerald-400/80 font-mono text-[11px]">UN SDGs 2, 6, 12, 14 Aligned</p>
+        </footer>
+      </div>
+
+      {/* New Pond Modal */}
       <CreatePondModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSubmit={(data) => createPondMutation.mutate(data)}
       />
-
-      {/* Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950/80 py-6 text-center text-xs text-slate-500">
-        <p>AquaFeed Optimizer • Aligned with UN SDGs 2, 6, 12, 14 • Built for AARAMBH WCE Hackathon 2026</p>
-      </footer>
     </div>
   );
 };
