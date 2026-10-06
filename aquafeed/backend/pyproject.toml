@@ -10,5 +10,5 @@ ignore = ["E501"]
 minversion = "7.0"
 addopts = "-ra -q"
 testpaths = ["tests"]
-pythonpath = ["."]
+pythonpath = [".", ".."]
 filterwarnings = ["ignore::DeprecationWarning"]

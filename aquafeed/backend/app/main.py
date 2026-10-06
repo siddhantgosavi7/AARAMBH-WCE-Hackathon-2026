@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.db.session import init_db
-from app.api import ponds, readings, feed, alerts, reports
+from app.api import ponds, readings, feed, alerts, reports, simulation
 
 
 @asynccontextmanager
@@ -36,6 +36,7 @@ app.include_router(readings.router, prefix="/api")
 app.include_router(feed.router, prefix="/api")
 app.include_router(alerts.router, prefix="/api")
 app.include_router(reports.router, prefix="/api")
+app.include_router(simulation.router, prefix="/api")
 
 
 @app.get("/")
