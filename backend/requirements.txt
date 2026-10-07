@@ -14,4 +14,4 @@ ruff>=0.3.4
 PyJWT>=2.8.0,<3.0.0
 passlib[bcrypt]>=1.7.4,<2.0.0
 # passlib 1.7.x is incompatible with bcrypt 5 during backend initialisation.
-bcrypt>=4.0.1,<5.0.0
+bcrypt==3.2.2
